@@ -1,16 +1,19 @@
-from pydantic import BaseModel, EmailStr
+# app/schemas/user_schema.py
+from pydantic import BaseModel
+from typing import Optional
 
+class UserBase(BaseModel):
+    email: str
+    full_name: Optional[str] = None
 
-class UserCreate(BaseModel):
-    clinic_name: str
-    email: EmailStr
+class UserCreate(UserBase):
     password: str
 
+class UserUpdate(UserBase):
+    password: Optional[str] = None
 
-class UserOut(BaseModel):
+class UserOut(UserBase):
     id: int
-    clinic_name: str
-    email: EmailStr
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # вместо orm_mode для Pydantic v2

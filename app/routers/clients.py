@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.schemas.client_schema import ClientCreate, ClientOut, ClientUpdate
@@ -17,7 +17,8 @@ router = APIRouter(
 
 @router.post("/", response_model=ClientOut)
 def add_client(client: ClientCreate, db: Session = Depends(get_db)):
-    return create_client(db, client)
+    user_id = 1  # Для теста: жестко заданный user_id
+    return create_client(db, client, user_id)
 
 @router.get("/", response_model=List[ClientOut])
 def list_clients(
@@ -26,13 +27,21 @@ def list_clients(
     status: Optional[str] = Query(None),
     date_created: Optional[str] = Query(None),
 ):
-    return get_clients(db, full_name, status, date_created)
+    # В get_clients пока не реализована фильтрация, можно добавить потом
+    return get_clients(db)
 
 @router.put("/{client_id}", response_model=ClientOut)
 def edit_client(client_id: int, client: ClientUpdate, db: Session = Depends(get_db)):
-    return update_client(db, client_id, client)
+    updated_client = update_client(db, client_id, client)
+    if not updated_client:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Клиент не найден")
+    return updated_client
 
 @router.delete("/{client_id}")
 def remove_client(client_id: int, db: Session = Depends(get_db)):
-    delete_client(db, client_id)
+    deleted_client = delete_client(db, client_id)
+    if not deleted_client:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Клиент не найден")
     return {"detail": "Пациент удален"}
