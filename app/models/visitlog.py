@@ -12,3 +12,5 @@ class VisitLog(Base):
     comment = Column(Text, nullable=True)
 
     client = relationship("Client", back_populates="visit_logs")
+    
+

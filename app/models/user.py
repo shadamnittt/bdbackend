@@ -6,9 +6,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    clinic_name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    username = Column(String, unique=True, index=True, nullable=True)
+    full_name = Column(String, nullable=True)   # ✅ добавляем
+    clinic_name = Column(String, nullable=True) # ✅ у тебя тоже есть в схемах
+    role = Column(String, default="registrar")
+    hashed_password = Column(String, nullable=False)
 
-    clients = relationship("Client", back_populates="user")
+    clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
