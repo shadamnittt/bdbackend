@@ -12,6 +12,12 @@ from app.core.security import verify_password, get_password_hash, create_access_
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+# 🔐 Единые пинкоды для каждой роли
+PIN_CODES = {
+    "doctor": "5267",
+    "admin": "1111",
+    "registrar": "8903"
+}
 
 # 🔹 Регистрация нового пользователя
 @router.post("/register", response_model=UserOut)
@@ -41,13 +47,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Неверный email или пароль")
 
+    # 📌 Пинкод передаём через scope
+    pin_code = form_data.scopes[0] if form_data.scopes else None
+    expected_pin = PIN_CODES.get(user.role)
+
+    if not expected_pin or pin_code != expected_pin:
+        raise HTTPException(status_code=400, detail="Неверный пинкод")
+
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role},
         expires_delta=access_token_expires
     )
     
-    # ✅ Возвращаем вместе с токеном роль и данные пользователя
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -73,7 +85,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-# 🔹 Пример эндпоинта: только для авторизованных
 @router.get("/me", response_model=UserOut)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
