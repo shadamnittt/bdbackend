@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -12,6 +12,7 @@ class Client(Base):
     comment = Column(Text, nullable=True)
     date_created = Column(DateTime)
     user_id = Column(Integer, ForeignKey("users.id"))
+    is_blacklisted = Column(Boolean, default=False)  
 
     user = relationship("User", back_populates="clients")
     visit_logs = relationship("VisitLog", back_populates="client", cascade="all, delete")

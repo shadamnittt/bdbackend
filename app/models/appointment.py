@@ -12,5 +12,7 @@ class Appointment(Base):
     date_time = Column(DateTime, default=datetime.utcnow)
     reason = Column(String, nullable=False)
     comment = Column(String, nullable=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     client = relationship("Client", back_populates="appointments")
+    doctor = relationship("User")

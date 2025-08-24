@@ -1,28 +1,31 @@
-from logging.config import fileConfig
+import os
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
+from logging.config import fileConfig
 from alembic import context
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# загрузка .env
+load_dotenv()
 
-from app.database import Base
-from app.models import client, appointment  # обязательно импортировать модели!
+# URL из env
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+# это конфиг alembic.ini
 config = context.config
 
+# логирование
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# импорт моделей
+from app.database import Base  # <-- здесь твоя база
+from app import models         # <-- чтобы alembic видел все модели
 
 target_metadata = Base.metadata
 
 def run_migrations_offline():
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        url=DATABASE_URL, target_metadata=target_metadata, literal_binds=True
     )
     with context.begin_transaction():
         context.run_migrations()

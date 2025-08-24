@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+
 from jose import jwt, JWTError
+import random
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.user import User
@@ -20,6 +23,7 @@ PIN_CODES = {
 }
 
 # 🔹 Регистрация нового пользователя
+# 🔹 Регистрация нового пользователя
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user.email).first()
@@ -27,9 +31,13 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
 
     hashed_pw = get_password_hash(user.password)
+
+    # если full_name пустое → генерим автоматически
+    safe_name = user.full_name or generate_username(user.role or "registrar")
+
     db_user = User(
         email=user.email,
-        full_name=user.full_name,
+        full_name=safe_name,
         clinic_name=user.clinic_name,
         hashed_password=hashed_pw,
         role=user.role or "registrar",
@@ -38,6 +46,18 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def generate_username(role: str):
+    suffix = random.randint(100000, 999999)
+    role_map = {
+        "superadmin": "admin",
+        "admin": "registrar",
+        "doctor": "doctor",   # у тебя роль user → это врач
+        "registrar": "registrar"
+    }
+    prefix = role_map.get(role.lower(), "user")
+    return f"{prefix}{suffix}"
 
 
 # 🔹 Авторизация (логин)
@@ -85,6 +105,43 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
+ROLE_LABELS = {
+    "doctor": "Врач",
+    "admin": "Админ",
+    "registrar": "Регистратор"
+}
+
+class UpdateProfile(BaseModel):
+    full_name: str | None = None
+    clinic_name: str | None = None
+
 @router.get("/me", response_model=UserOut)
 def read_users_me(current_user: User = Depends(get_current_user)):
+    # Подменяем роль на красивое название
+    current_user.role = ROLE_LABELS.get(current_user.role, current_user.role)
+    return current_user
+
+class UpdateName(BaseModel):
+    full_name: str
+
+@router.put("/me/update_name", response_model=UserOut)
+def update_name(data: UpdateName, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    current_user.full_name = data.full_name
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.put("/me/update_profile", response_model=UserOut)
+def update_profile(
+    data: UpdateProfile,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if data.full_name is not None:
+        current_user.full_name = data.full_name
+    if data.clinic_name is not None:
+        current_user.clinic_name = data.clinic_name
+
+    db.commit()
+    db.refresh(current_user)
     return current_user

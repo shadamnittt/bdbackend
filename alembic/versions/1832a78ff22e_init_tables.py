@@ -1,8 +1,8 @@
-"""Add role column to users
+"""init tables
 
-Revision ID: 324e4b494560
-Revises: 494ceac63c05
-Create Date: 2025-08-19 03:42:01.610826
+Revision ID: 1832a78ff22e
+Revises: 
+Create Date: 2025-08-24 16:29:19.546143
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '324e4b494560'
-down_revision: Union[str, None] = '494ceac63c05'
+revision: str = '1832a78ff22e'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
