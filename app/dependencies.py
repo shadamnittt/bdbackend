@@ -1,17 +1,22 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from jose import jwt, JWTError
+
 from app.database import get_db
 from app.models.user import User
-from app.utils.auth import decode_token  # твоя функция декодирования JWT
+from app.core.security import SECRET_KEY, ALGORITHM  # ✅ берём из одного места
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")  # оставляем без /auth
 
-# Получаем текущего пользователя по токену
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    print("TOKEN RECEIVED:", token)
     try:
-        user_id = decode_token(token)
-    except Exception:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+        user_id = int(payload.get("sub"))
+        print("Decoded payload:", payload)
+    except JWTError as e:
+        print("TOKEN ERROR:", e)
         raise HTTPException(status_code=401, detail="Invalid token")
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -19,7 +24,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
-# Проверка ролей
+
 def role_required(allowed_roles: list):
     def role_checker(current_user: User = Depends(get_current_user)):
         if current_user.role not in allowed_roles:

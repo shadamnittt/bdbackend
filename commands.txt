@@ -13,10 +13,10 @@ git push
 
 uvicorn app.main:app --reload
 
-DATABASE_URL=postgresql+psycopg2://postgres:123Wayther@localhost:5432/postgres
+DATABASE_URL=postgresql+psycopg2://postgres:balmuzdak@localhost:5432/postgres
 
 DB_USER=postgres
-DB_PASSWORD=123Wayther
+DB_PASSWORD=balmuzdak
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=postgres

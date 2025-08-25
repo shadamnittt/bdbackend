@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-
 from jose import jwt, JWTError
 import random
 from pydantic import BaseModel
@@ -13,7 +12,7 @@ from app.schemas.user import UserCreate, UserOut
 from app.core.security import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # 🔐 Единые пинкоды для каждой роли
 PIN_CODES = {
@@ -22,8 +21,7 @@ PIN_CODES = {
     "registrar": "8903"
 }
 
-# 🔹 Регистрация нового пользователя
-# 🔹 Регистрация нового пользователя
+# --- Регистрация нового пользователя ---
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user.email).first()
@@ -31,8 +29,6 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email уже зарегистрирован")
 
     hashed_pw = get_password_hash(user.password)
-
-    # если full_name пустое → генерим автоматически
     safe_name = user.full_name or generate_username(user.role or "registrar")
 
     db_user = User(
@@ -47,30 +43,27 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
-
 def generate_username(role: str):
     suffix = random.randint(100000, 999999)
     role_map = {
         "superadmin": "admin",
         "admin": "registrar",
-        "doctor": "doctor",   # у тебя роль user → это врач
+        "doctor": "doctor",
         "registrar": "registrar"
     }
     prefix = role_map.get(role.lower(), "user")
     return f"{prefix}{suffix}"
 
-
-# 🔹 Авторизация (логин)
+# --- Логин ---
 @router.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Неверный email или пароль")
 
-    # 📌 Пинкод передаём через scope
+    # Проверка пинкода
     pin_code = form_data.scopes[0] if form_data.scopes else None
     expected_pin = PIN_CODES.get(user.role)
-
     if not expected_pin or pin_code != expected_pin:
         raise HTTPException(status_code=400, detail="Неверный пинкод")
 
@@ -79,7 +72,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         data={"sub": str(user.id), "role": user.role},
         expires_delta=access_token_expires
     )
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -88,23 +81,23 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "full_name": user.full_name
     }
 
-
-# 🔹 Получение текущего пользователя
+# --- Получение текущего пользователя ---
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id = payload.get("sub")
+        if not user_id:
             raise HTTPException(status_code=401, detail="Недействительный токен")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Недействительный токен")
+        user_id = int(user_id)
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Недействительный токен: {e}")
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user
 
-
+# --- Красивые роли для фронтенда ---
 ROLE_LABELS = {
     "doctor": "Врач",
     "admin": "Админ",
@@ -117,7 +110,6 @@ class UpdateProfile(BaseModel):
 
 @router.get("/me", response_model=UserOut)
 def read_users_me(current_user: User = Depends(get_current_user)):
-    # Подменяем роль на красивое название
     current_user.role = ROLE_LABELS.get(current_user.role, current_user.role)
     return current_user
 
@@ -132,16 +124,11 @@ def update_name(data: UpdateName, db: Session = Depends(get_db), current_user: U
     return current_user
 
 @router.put("/me/update_profile", response_model=UserOut)
-def update_profile(
-    data: UpdateProfile,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+def update_profile(data: UpdateProfile, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if data.full_name is not None:
         current_user.full_name = data.full_name
     if data.clinic_name is not None:
         current_user.clinic_name = data.clinic_name
-
     db.commit()
     db.refresh(current_user)
     return current_user

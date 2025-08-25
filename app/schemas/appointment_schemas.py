@@ -1,7 +1,7 @@
-# app/schemas/appointment_schema.py
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
 
 class AppointmentBase(BaseModel):
     client_id: int
@@ -9,14 +9,18 @@ class AppointmentBase(BaseModel):
     reason: str
     comment: Optional[str] = None
 
+
 class AppointmentCreate(AppointmentBase):
-    pass
+    doctor_id: Optional[int] = None   # 👈 теперь можно указывать врача
+
 
 class AppointmentUpdate(AppointmentBase):
-    pass
+    doctor_id: Optional[int] = None
+
 
 class AppointmentOut(AppointmentBase):
     id: int
+    doctor_id: Optional[int]
 
     class Config:
-        from_attributes = True  # pydantic v2 заменяет orm_mode на from_attributes
+        from_attributes = True  # ✅ для работы с SQLAlchemy
