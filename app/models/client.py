@@ -17,3 +17,6 @@ class Client(Base):
     user = relationship("User", back_populates="clients")
     visit_logs = relationship("VisitLog", back_populates="client", cascade="all, delete")
     appointments = relationship("Appointment", back_populates="client")
+    clinic_id = Column(Integer, ForeignKey("clinic_profile.id"), nullable=True)
+
+    clinic = relationship("ClinicProfile", back_populates="clients")

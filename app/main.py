@@ -14,6 +14,8 @@ from app.routers.admin import router as admin_router
 from app.routers.clients import router as clients_router
 from app.routers.auth import router as auth_router
 from app.routers.appointment import router as appointment_router
+from app.routers.clinic import router as clinic_router
+from app.routers.doctors import router as doctor_router
 
 app = FastAPI(
     title="BlackDent — Учёт Пациентов",
@@ -35,6 +37,8 @@ app.include_router(auth_router)          # теперь /token и /register до
 app.include_router(appointment_router)
 app.include_router(user_router)
 app.include_router(admin_router)         # админский роутер
+app.include_router(doctor_router)
+app.include_router(clinic_router)
 
 @app.get("/")
 async def root():

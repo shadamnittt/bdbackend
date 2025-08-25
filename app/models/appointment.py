@@ -15,4 +15,5 @@ class Appointment(Base):
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     client = relationship("Client", back_populates="appointments")
-    doctor = relationship("User")
+    doctor_id = Column(Integer, ForeignKey("doctors.id"), nullable=False)
+    doctor = relationship("Doctor", back_populates="appointments")

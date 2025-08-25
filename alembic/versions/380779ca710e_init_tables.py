@@ -1,8 +1,8 @@
 """init tables
 
-Revision ID: 58d2e822d0c4
-Revises: 1832a78ff22e
-Create Date: 2025-08-24 16:42:51.151852
+Revision ID: 380779ca710e
+Revises: 
+Create Date: 2025-08-25 19:33:34.720248
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '58d2e822d0c4'
-down_revision: Union[str, None] = '1832a78ff22e'
+revision: str = '380779ca710e'
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -40,6 +40,7 @@ def upgrade() -> None:
     sa.Column('comment', sa.Text(), nullable=True),
     sa.Column('date_created', sa.DateTime(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('is_blacklisted', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -51,7 +52,9 @@ def upgrade() -> None:
     sa.Column('date_time', sa.DateTime(), nullable=True),
     sa.Column('reason', sa.String(), nullable=False),
     sa.Column('comment', sa.String(), nullable=True),
+    sa.Column('doctor_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
+    sa.ForeignKeyConstraint(['doctor_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_appointments_id'), 'appointments', ['id'], unique=False)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -13,3 +13,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
 
     clients = relationship("Client", back_populates="user", cascade="all, delete-orphan")
+    clinic_id = Column(Integer, ForeignKey("clinic_profile.id"), nullable=True)
+
+    clinic = relationship("ClinicProfile", back_populates="users")
+
