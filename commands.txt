@@ -20,3 +20,11 @@ DB_PASSWORD=balmuzdak
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=postgres
+
+INSERT INTO clinic_profile (id, name, address, phone) 
+VALUES (1, 'Моя клиника', 'ул. Примерная, 10', '8-700-000-00-00'); - добавление клиники любой одну в базу данных 
+
+UPDATE users
+SET clinic_id = 1
+WHERE id = 5;
+присвоение клиники для профиля клиники

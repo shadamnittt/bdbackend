@@ -82,19 +82,38 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     }
 
 # --- Получение текущего пользователя ---
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+# def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id = payload.get("sub")
+#         if not user_id:
+#             raise HTTPException(status_code=401, detail="Недействительный токен")
+#         user_id = int(user_id)
+#     except JWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Недействительный токен: {e}")
+
+#     user = db.query(User).filter(User.id == user_id).first()
+#     if not user:
+#         raise HTTPException(status_code=404, detail="Пользователь не найден")
+#     return user
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+    if not token:
+        raise HTTPException(status_code=401, detail="Нет токена авторизации")
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Недействительный токен")
         user_id = int(user_id)
-    except JWTError as e:
-        raise HTTPException(status_code=401, detail=f"Недействительный токен: {e}")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Недействительный токен")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
     return user
 
 # --- Красивые роли для фронтенда ---
